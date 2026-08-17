@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KI-Reifegrad-Check · Lernökosysteme v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:#0a0e1a; --surface:#111827; --surface2:#1a2235; --border:#1e2d47;
+    --accent:#3b82f6; --accent2:#06b6d4; --accent3:#8b5cf6;
+    --text:#e2e8f0; --muted:#64748b; --gold:#f59e0b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(59,130,246,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,.04) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0;}
+  body::after{content:'';position:fixed;top:-20%;right:-10%;width:600px;height:600px;background:radial-gradient(circle,rgba(59,130,246,.12) 0%,transparent 70%);pointer-events:none;z-index:0;}
+  .wrap{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:0 24px 80px;}
+
+  header{padding:56px 0 48px;text-align:center;}
+  .badge{display:inline-flex;align-items:center;gap:8px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);border-radius:100px;padding:6px 16px;font-size:12px;font-weight:500;color:var(--accent);letter-spacing:.08em;text-transform:uppercase;margin-bottom:28px;}
+  .badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(.7);}}
+  h1{font-family:'Syne',sans-serif;font-size:clamp(32px,5vw,52px);font-weight:800;line-height:1.08;letter-spacing:-.02em;margin-bottom:16px;background:linear-gradient(135deg,#e2e8f0 30%,#3b82f6 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  .subtitle{font-size:17px;color:var(--muted);font-weight:300;max-width:560px;margin:0 auto 40px;line-height:1.6;}
+  .version-note{display:inline-flex;gap:16px;justify-content:center;margin-bottom:32px;flex-wrap:wrap;}
+  .vnote{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:12px;color:var(--muted);}
+  .vnote strong{color:var(--text);}
+  .progress-bar-wrap{display:flex;align-items:center;gap:16px;margin-bottom:8px;}
+  .progress-bar{flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width .4s ease;width:0%;}
+  .progress-label{font-size:13px;color:var(--muted);white-space:nowrap;}
+
+  .section-header{display:flex;align-items:center;gap:12px;margin:48px 0 24px;padding-bottom:16px;border-bottom:1px solid var(--border);}
+  .section-tag{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:4px 12px;border-radius:4px;white-space:nowrap;}
+  .tag-meso{background:rgba(6,182,212,.15);color:#22d3ee;border:1px solid rgba(6,182,212,.25);}
+  .tag-sozio{background:rgba(139,92,246,.15);color:#a78bfa;border:1px solid rgba(139,92,246,.25);}
+  .tag-tech{background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.25);}
+
+  .dimension{margin-bottom:36px;}
+  .dim-header{margin-bottom:12px;}
+  .dim-label{font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+  .dim-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;}
+  .dim-info-toggle{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--accent);cursor:pointer;background:none;border:none;padding:4px 0;font-family:'DM Sans',sans-serif;opacity:.8;transition:opacity .15s;}
+  .dim-info-toggle:hover{opacity:1;}
+  .dim-info-toggle svg{transition:transform .2s;}
+  .dim-info-toggle.open svg:last-child{transform:rotate(180deg);}
+  .dim-info-panel{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:0;max-height:0;overflow:hidden;transition:max-height .35s ease,padding .2s ease;margin-bottom:0;}
+  .dim-info-panel.open{max-height:440px;padding:16px 18px;margin-bottom:14px;}
+  .dim-info-section{margin-bottom:12px;}
+  .dim-info-section:last-child{margin-bottom:0;}
+  .dim-info-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent2);margin-bottom:6px;}
+  .dim-info-text{font-size:13px;color:var(--text);line-height:1.55;}
+  .dim-info-list{list-style:none;padding:0;}
+  .dim-info-list li{font-size:12.5px;color:var(--text);line-height:1.5;padding:3px 0;display:flex;gap:8px;}
+  .dim-info-list li::before{content:'▸';color:var(--accent);flex-shrink:0;}
+  .kpi-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}
+  .kpi-chip{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);border-radius:6px;padding:4px 10px;font-size:11.5px;color:var(--accent2);}
+
+  .question-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:16px;transition:border-color .2s,box-shadow .2s;}
+  .question-card:hover{border-color:rgba(59,130,246,.3);}
+  .question-card.answered{border-color:rgba(59,130,246,.4);box-shadow:0 0 0 1px rgba(59,130,246,.1) inset;}
+  .question-text{font-size:15px;font-weight:500;line-height:1.55;margin-bottom:18px;color:var(--text);}
+
+  .options{display:flex;flex-direction:column;gap:8px;}
+  .option{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;transition:all .15s ease;}
+  .option:hover{border-color:rgba(59,130,246,.4);background:rgba(59,130,246,.06);}
+  .option input[type="radio"]{display:none;}
+  .option.selected{border-color:var(--accent);background:rgba(59,130,246,.1);}
+  .option-dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;margin-top:1px;transition:all .15s;display:flex;align-items:center;justify-content:center;}
+  .option.selected .option-dot{border-color:var(--accent);background:var(--accent);}
+  .option.selected .option-dot::after{content:'';width:6px;height:6px;border-radius:50%;background:white;}
+  .option-level{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.06em;flex-shrink:0;margin-top:2px;min-width:22px;}
+  .option.selected .option-level{color:var(--accent);}
+  .option-text{font-size:13.5px;line-height:1.5;color:var(--text);}
+
+  .submit-wrap{text-align:center;margin-top:48px;}
+  .unanswered-note{font-size:13px;color:var(--gold);margin-bottom:16px;display:none;}
+  .btn-submit{display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;border:none;border-radius:10px;padding:16px 40px;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.02em;}
+  .btn-submit:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(59,130,246,.4);}
+
+  #results{display:none;animation:fadeUp .5s ease;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+  .result-hero{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;text-align:center;margin-bottom:32px;position:relative;overflow:hidden;}
+  .result-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent3));}
+  .result-label{font-size:12px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
+  .result-score{font-family:'Syne',sans-serif;font-size:72px;font-weight:800;line-height:1;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px;}
+  .result-max{font-size:14px;color:var(--muted);margin-bottom:24px;}
+  .result-grade{font-family:'Syne',sans-serif;font-size:26px;font-weight:700;color:var(--text);margin-bottom:12px;}
+  .result-desc{font-size:15px;color:var(--muted);max-width:500px;margin:0 auto;line-height:1.6;}
+  .maturity-bar{display:flex;gap:4px;justify-content:center;margin:28px 0 0;}
+  .maturity-seg{flex:1;max-width:80px;height:6px;border-radius:3px;background:var(--border);transition:background .3s;}
+  .maturity-seg.active{background:linear-gradient(90deg,var(--accent),var(--accent2));}
+  .maturity-labels{display:flex;gap:4px;justify-content:center;margin-top:8px;}
+  .maturity-seg-label{flex:1;max-width:80px;font-size:10px;color:var(--muted);text-align:center;}
+
+  .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px;}
+  @media(max-width:600px){.charts-grid{grid-template-columns:1fr;}}
+  .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;}
+  .chart-card.full{grid-column:1/-1;}
+  .chart-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text);margin-bottom:20px;letter-spacing:.02em;}
+
+  .breakdown{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px;margin-bottom:24px;}
+  .breakdown-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:20px;}
+  .breakdown-ebene{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin:18px 0 10px;padding:4px 10px;border-radius:4px;display:inline-block;}
+  .breakdown-row{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+  .breakdown-name{font-size:13px;color:var(--text);min-width:220px;flex-shrink:0;}
+  .breakdown-track{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+  .breakdown-fill{height:100%;border-radius:3px;transition:width .8s cubic-bezier(.34,1.56,.64,1);}
+  .breakdown-val{font-size:13px;font-weight:500;color:var(--accent);min-width:32px;text-align:right;}
+
+  .reco-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px;margin-bottom:16px;border-left:3px solid var(--accent);}
+  .reco-priority{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;}
+  .reco-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:8px;}
+  .reco-text{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:12px;}
+  .reco-kpis{display:flex;flex-wrap:wrap;gap:6px;}
+  .reco-kpi{background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.18);border-radius:6px;padding:4px 10px;font-size:11.5px;color:var(--accent2);}
+
+  .btn-reset{display:inline-flex;align-items:center;gap:8px;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:10px 20px;font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer;transition:all .15s;margin-top:24px;}
+  .btn-reset:hover{border-color:var(--accent);color:var(--accent);}
+  .scroll-hint{text-align:center;padding:32px 0 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="badge">KI-Reifegrad · Version 3</div>
+    <h1>KI-Reifegrad-Check<br>Lernökosysteme</h1>
+    <p class="subtitle">Bewerten Sie den KI-Reifegrad Ihres Lernökosystems — 15 Dimensionen auf 3 Ebenen, konsequent auf Organisationsreife fokussiert.</p>
+    <div class="version-note">
+      <div class="vnote"><strong>15</strong> Dimensionen</div>
+      <div class="vnote"><strong>3</strong> Ebenen</div>
+      <div class="vnote">Max. <strong>75</strong> Punkte</div>
+      <div class="vnote">Nur <strong>Organisationsreife</strong> — keine Individualkompetenzen</div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <span class="progress-label" id="progressLabel">0 / 15 beantwortet</span>
+    </div>
+  </header>
+
+  <div id="checkForm"></div>
+
+  <div class="submit-wrap">
+    <div class="unanswered-note" id="unansweredNote">Bitte beantworten Sie alle Fragen, bevor Sie fortfahren.</div>
+    <button class="btn-submit" onclick="submitCheck()">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 20 4 15"/></svg>
+      Auswertung anzeigen
+    </button>
+  </div>
+
+  <div id="results">
+    <div class="result-hero">
+      <div class="result-label">Ihr KI-Reifegrad</div>
+      <div class="result-score" id="rScore">–</div>
+      <div class="result-max">von 75 Punkten</div>
+      <div class="result-grade" id="rGrade">–</div>
+      <div class="result-desc" id="rDesc">–</div>
+      <div class="maturity-bar" id="matBar"></div>
+      <div class="maturity-labels">
+        <div class="maturity-seg-label">Initiierend</div>
+        <div class="maturity-seg-label">Entwickelnd</div>
+        <div class="maturity-seg-label">Etablierend</div>
+        <div class="maturity-seg-label">Optimierend</div>
+        <div class="maturity-seg-label">Transformierend</div>
+      </div>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-card full">
+        <div class="chart-title">Netzdiagramm: Reifegrad nach Dimensionen</div>
+        <canvas id="radarChart" style="max-height:480px;"></canvas>
+      </div>
+      <div class="chart-card full">
+        <div class="chart-title">Ø Reifegrad nach Ebenen</div>
+        <canvas id="barChart" style="max-height:260px;"></canvas>
+      </div>
+    </div>
+    <div class="breakdown" id="breakdown"></div>
+    <div id="recommendations"></div>
+    <div class="scroll-hint">
+      <button class="btn-reset" onclick="resetCheck()">↩ Check neu starten</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// DATA — v3: 15 Dimensionen, 3 Ebenen, nur Organisationsreife
+// Änderungen vs. v2:
+//   - Entfernt: Lernende & KI-Kompetenz, Selbstgesteuertes Lernen & Lernverhalten
+//   - Zusammengeführt: Lerntechnologien & Technologie → Technologie, Tools & Infrastruktur
+//   - Verschoben: Mensch-KI-Interaktion → Meso-Ebene
+// ══════════════════════════════════════════════════════════════════════════════
+const dimensions = [
+
+  // ── MESO-EBENE (5 Dimensionen) ─────────────────────────────────────────────
+  {
+    level:"Meso-Ebene", levelTag:"meso",
+    name:"Mensch-KI-Interaktion",
+    analyseeinheit:"Qualität der Zusammenarbeit Mensch–KI im System",
+    desc:"Ausmaß, in dem Mensch und KI in Lern- und Arbeitsprozessen effektiv zusammenwirken. Bewertet werden: Grad der KI-Autonomie, Verteilung von Kontrolle und Verantwortung, Qualität der Kollaboration sowie Vertrauen, Akzeptanz und Nachvollziehbarkeit der KI-Systeme in der Organisation.",
+    indikatoren:[
+      "Verantwortlichkeiten bei KI-Fehlentscheidungen sind organisational klar geregelt",
+      "KI-Systeme liefern nachvollziehbare Begründungen für Empfehlungen",
+      "Nutzerakzeptanz und Vertrauen in KI-Systeme werden regelmäßig erhoben"
+    ],
+    kpis:["Nutzerakzeptanzrate KI-Systeme (%, Befragung)","Anteil KI-Entscheidungen mit dokumentierter menschlicher Überprüfung (%)"],
+    question:"Wie effektiv, vertrauensvoll und transparent gestaltet sich die Zusammenarbeit zwischen Mitarbeitenden und KI-Systemen in Ihrem Lernökosystem — hinsichtlich Kontrolle, Akzeptanz und Nachvollziehbarkeit?",
+    options:[
+      "KI wird ausschließlich als isoliertes Werkzeug wahrgenommen. Verantwortung und Kontrolle sind ungeklärt. Vertrauen in KI-Systeme ist nicht vorhanden; Akzeptanz fehlt.",
+      "Mensch und KI arbeiten in einzelnen Situationen unterstützend zusammen. Vertrauen und Akzeptanz sind begrenzt vorhanden. Verantwortlichkeiten sind noch nicht klar geregelt.",
+      "Mensch und KI arbeiten bei definierten Aufgaben regelmäßig zusammen. Verantwortung und Kontrolle sind geregelt. Transparenz über KI-Entscheidungen ist in Ansätzen vorhanden.",
+      "KI agiert in vielen Bereichen hochautonom mit klaren Kontrollmechanismen. Mensch und KI sind fester Bestandteil gemeinsamer Prozesse. Transparenz, Nachvollziehbarkeit und Vertrauen sind organisationsweit sichergestellt.",
+      "Mensch und KI agieren als integrierte hybride Teams. KI übernimmt eigenständig komplexe Aufgaben, antizipiert Bedarfe und optimiert Prozesse kontinuierlich. Die Zusammenarbeit basiert auf Vertrauen, Transparenz und gegenseitiger Weiterentwicklung."
+    ]
+  },
+  {
+    level:"Meso-Ebene", levelTag:"meso",
+    name:"KI-gestütztes Lernen (AI-Learning)",
+    analyseeinheit:"das Lernsystem / die Organisation",
+    desc:"Ausmaß, in dem das organisationale Lernangebot KI-gestützt, aktivierend und kollaborativ gestaltet ist. Bewertet werden: Personalisierung von Lernpfaden, Förderung kollaborativer Lernformate sowie die ausgewogene Unterstützung von wissensbasiertem Lernen (Exploitation) und explorativem, innovativem Lernen (Exploration).",
+    indikatoren:[
+      "Lernpfade werden individuell angepasst — nicht einheitlich für alle",
+      "Kollaborative Lernformate sind fester Bestandteil des Angebots",
+      "Explorative Lernformate (z. B. Simulationen, Projekte) sind verfügbar"
+    ],
+    kpis:["Anteil personalisierter Lernpfade an Gesamt-Lernangeboten (%)","Anteil Lernende in kollaborativen Formaten pro Quartal (%)"],
+    question:"Wie aktivierend, personalisiert und kollaborativ ist Ihr organisationales Lernangebot gestaltet — und wie gut kombiniert KI explorative und wissensbasierte Lernprozesse?",
+    options:[
+      "Das Lernangebot ist vollständig passiv und fremdgesteuert gestaltet. Kollaborative Formate sind nicht vorgesehen. KI-Unterstützung fehlt; Angebote beschränken sich auf die Vermittlung vorhandenen Wissens.",
+      "Erste aktivierende Lernelemente werden pilotiert. Einzelne kollaborative Formate sind vorhanden. KI-gestützte Personalisierung wird vereinzelt erprobt; Exploration und Wissensnutzung werden nicht systematisch kombiniert.",
+      "Das Lernangebot ist bereichsweise aktivierend und kollaborativ gestaltet. KI unterstützt Personalisierung und erste explorative Lernformate. Kollaboratives Lernen ist strukturell verankert, aber noch nicht organisationsweit ausgebaut.",
+      "Das Lernangebot ist organisationsweit personalisiert, kollaborativ und KI-gestützt. Exploration und Exploitation werden gezielt kombiniert. KI unterstützt Gruppenlernen, Wissensvernetzung und individuelle Lernpfade systematisch.",
+      "Das Lernangebot ist vollständig KI-orchestriert, adaptiv und in den Arbeitsfluss integriert. KI verknüpft Exploration, Wissensgenerierung und Anwendung dynamisch in Echtzeit. Kollaborative und individuelle Lernprozesse werden autonom optimiert."
+    ]
+  },
+  {
+    level:"Meso-Ebene", levelTag:"meso",
+    name:"Lerninhalte & Lernformate",
+    analyseeinheit:"Inhaltsgestaltung & Formatqualität",
+    desc:"Ausmaß, in dem KI personalisierte Lernprozesse durch adaptive Lernpfade, individuell generierte Inhalte sowie dialogische Lernunterstützung ermöglicht. Bewertet werden Erstellung, Aktualisierung und Kuratierung von Inhalten sowie die Interaktivität der Formate.",
+    indikatoren:[
+      "Lerninhalte werden regelmäßig KI-gestützt aktualisiert",
+      "Dialogische Formate (Lernbots, virtuelle Coaches) sind zugänglich",
+      "Inhalte werden auf Basis von Lernerdaten personalisiert angepasst"
+    ],
+    kpis:["Anteil KI-generierter oder KI-kuratierter Lerninhalte (%)","Ø Aktualitätsalter der Lerninhalte (Tage seit letztem Update)"],
+    question:"In welchem Ausmaß werden Lerninhalte und Lernformate durch KI personalisiert, adaptiv gestaltet und dialogisch aufbereitet?",
+    options:[
+      "Lerninhalte sind vollständig standardisiert, werden manuell erstellt und Lernformate sind statisch. Keine Personalisierung oder KI-Unterstützung vorhanden.",
+      "Erste zielgruppenspezifische Inhalte werden mit digitaler Unterstützung erstellt. Lernformate sind teilweise interaktiv. KI-Einsatz in Inhaltserstellung und -kuratierung wird vereinzelt erprobt.",
+      "KI passt Lerninhalte, Lernpfade und Empfehlungen in Teilen personalisiert an. Generative KI unterstützt Erstellung und Kuratierung von Inhalten bereichsweise. Dialogische Lernformate sind in ausgewählten Bereichen etabliert.",
+      "Lerninhalte, Lernpfade und Empfehlungen sind vollständig personalisiert. Generative KI erstellt, aktualisiert und kuratiert Inhalte organisationsweit; Qualitätssicherung ist etabliert. Dialogische Lernformate sind adaptiv und organisationsweit verfügbar.",
+      "Lerninhalte, Lernpfade und Formate werden in Echtzeit KI-generiert, kontextsensitiv angepasst und autonom weiterentwickelt. Immersive, multimodale und adaptive Lernumgebungen ermöglichen hochindividualisierte Lernerfahrungen."
+    ]
+  },
+  {
+    level:"Meso-Ebene", levelTag:"meso",
+    name:"Learning in the Flow",
+    analyseeinheit:"Integration von Lernen in Arbeitsabläufe",
+    desc:"Ausmaß, in dem Lernen und Arbeiten mit KI verknüpft sind und Arbeitsaufgaben so gestaltet werden, dass sie Kompetenzentwicklung und kontinuierliches Lernen fördern. Bewertet werden die Ausrichtung von Lernprozessen an realen Arbeitssituationen und die Integration von KI-Unterstützung unmittelbar im Arbeitsfluss.",
+    indikatoren:[
+      "Lernressourcen sind im Arbeitskontext (z. B. CRM, ERP) direkt abrufbar",
+      "Arbeitsaufgaben enthalten explizite Lernmomente oder Reflexionsphasen",
+      "KI schlägt kontextbezogene Lernressourcen während der Arbeit vor"
+    ],
+    kpis:["Anteil Lernaktivitäten direkt im Arbeitskontext (%)","Ø Klickrate auf KI-generierte Lernempfehlungen im Arbeitsfluss (%)"],
+    question:"In welchem Maß sind Lernen und Arbeiten in Ihrer Organisation miteinander verknüpft — und unterstützt KI Kompetenzentwicklung unmittelbar im laufenden Arbeitsprozess?",
+    options:[
+      "Arbeitsaufgaben sind stark standardisiert und repetitiv. Lernen findet ausschließlich außerhalb der Arbeitstätigkeit statt. KI-Unterstützung im Arbeitskontext fehlt vollständig.",
+      "Einzelne Arbeitsaufgaben sind entwicklungsorientiert gestaltet. KI unterstützt Lernen vereinzelt und praxisnah. Erste Beispiele für Lernen im Arbeitskontext sind vorhanden.",
+      "Arbeitsaufgaben sind so gestaltet, dass sie Lernen und Kompetenzaufbau regelmäßig unterstützen. KI orientiert sich beim Lernen an realen Aufgabenstellungen. KI unterstützt Lernen in Teilen unmittelbar während der Arbeit.",
+      "Arbeitsaufgaben sind systematisch lernförderlich und kompetenzorientiert gestaltet. KI verknüpft Lernprozesse mit konkreten arbeitsbezogenen Problemstellungen. Lernen im Arbeitsfluss ist organisationsweit systematisch verankert.",
+      "Arbeitsaufgaben sind dynamisch kompetenz- und innovationsorientiert gestaltet. Lernen und Arbeiten sind vollständig integriert. KI erkennt Entwicklungsbedarfe proaktiv und ermöglicht kontinuierliche Kompetenzentwicklung im laufenden Arbeitsprozess."
+    ]
+  },
+  {
+    level:"Meso-Ebene", levelTag:"meso",
+    name:"Kollaboration & Wissensaustausch",
+    analyseeinheit:"Vernetzung, Communities & Wissensflüsse",
+    desc:"Ausmaß, in dem KI Wissensaustausch, Vernetzung und kollaboratives Lernen unterstützt. Bewertet werden: Verfügbarkeit von KI-Assistenzsystemen (Chatbots, Expert-Finder, Wissensassistenten), gezielte Vernetzung von Personen und Communities sowie KI-Unterstützung bei Kuratierung, Moderation und gemeinsamer Wissensentwicklung.",
+    indikatoren:[
+      "Expert-Finder-System ist aktiv genutzt",
+      "Communities of Practice sind aktiv und KI-gestützt moderiert",
+      "Wissensartikel werden kollaborativ erstellt und gepflegt"
+    ],
+    kpis:["Anteil Mitarbeitender in aktiven Communities (%)","Ø Anzahl Wissensartikel pro Mitarbeitendem pro Quartal"],
+    question:"Wie gut unterstützt KI den Wissensaustausch, die Vernetzung von Experten und das kollaborative Lernen in Ihrer Organisation?",
+    options:[
+      "KI-gestützte Unterstützungsangebote sind nicht vorhanden. Netzwerke und Communities existieren nicht oder sind vollständig isoliert. Wissensaustausch erfolgt nicht systematisch.",
+      "Einzelne KI-basierte Unterstützungsangebote (z. B. einfache Chatbots) sind informell verfügbar. KI zur Vernetzung von Personen wird punktuell eingesetzt. Communities sind informell und nicht strukturiert.",
+      "KI-Unterstützungsangebote (z. B. Chatbots, Expert-Finder, Wissensassistenten) sind strukturiert verfügbar. Vernetzung von Personen und Experten ist bereichsübergreifend etabliert. Communities sind organisiert und aktiv.",
+      "KI-Unterstützungsangebote sind organisationsweit integriert und bedarfsgerecht zugänglich. Vernetzung von Personen und Experten wird durch KI kontextbezogen unterstützt. Communities werden KI-gestützt moderiert und weiterentwickelt.",
+      "KI-basierte Unterstützungssysteme agieren proaktiv, kontextsensitiv und organisationsübergreifend. Communities, Netzwerke und Wissensflüsse werden autonom durch KI moderiert und optimiert. Wissenstransfer erfolgt intelligent und in Echtzeit."
+    ]
+  },
+
+  // ── SOZIO-ORGANISATORISCHE EBENE (7 Dimensionen) ───────────────────────────
+  {
+    level:"Sozio-organisatorische Ebene", levelTag:"sozio",
+    name:"Strategie",
+    analyseeinheit:"strategische Ausrichtung & Planung",
+    desc:"Ausmaß, in dem KI strategisch geplant, gesteuert und weiterentwickelt wird, um Kompetenzentwicklung und Zukunftsfähigkeit zu sichern. Bewertet werden: Ausrichtung an Unternehmenszielen, Planung und Skalierung von KI-Fähigkeiten und Anwendungsfällen sowie die Fähigkeit, messbare Wertbeiträge nachzuweisen.",
+    indikatoren:[
+      "KI-Lernstrategie ist schriftlich dokumentiert und kommuniziert",
+      "KI-Initiativen sind an messbaren Unternehmenszielen ausgerichtet",
+      "Skalierungsplanung für KI-Fähigkeiten ist vorhanden"
+    ],
+    kpis:["Anteil KI-Initiativen mit messbarem strategischem Ziel (%)","Anzahl skalierter KI-Anwendungsfälle im L&D-Bereich"],
+    question:"In welchem Ausmaß ist KI im Lernbereich strategisch geplant, an Unternehmenszielen ausgerichtet und hinsichtlich Skalierung und Wertbeitrag systematisch gesteuert?",
+    options:[
+      "Eine KI-Lernstrategie ist nicht vorhanden. KI-Initiativen orientieren sich nicht an Unternehmenszielen. Planung und Skalierung von KI-Fähigkeiten und Anwendungsfällen fehlen vollständig.",
+      "Eine KI-Lernstrategie ist in Ansätzen konzipiert. Unternehmensziele werden vereinzelt berücksichtigt. Planung und Skalierung von KI-Fähigkeiten sind fragmentiert und auf Einzelprojekte beschränkt.",
+      "Eine KI-Lernstrategie ist organisatorisch definiert und dokumentiert. KI-Initiativen sind mit Unternehmenszielen abgestimmt. Planung und Skalierung von KI-Fähigkeiten und Anwendungsfällen sind strukturiert beschrieben.",
+      "Die KI-Lernstrategie ist organisationsweit etabliert und strategisch verankert. KI-Initiativen sind klar auf Unternehmensziele und Kompetenzbedarfe ausgerichtet. Skalierung von KI-Fähigkeiten erfolgt systematisch und messbar.",
+      "Die KI-Lernstrategie ist vollständiger Bestandteil der Unternehmensstrategie und treibt Innovation und Wettbewerbsfähigkeit aktiv voran. KI-Fähigkeiten und Anwendungsfälle werden dynamisch priorisiert, skaliert und kontinuierlich weiterentwickelt."
+    ]
+  },
+  {
+    level:"Sozio-organisatorische Ebene", levelTag:"sozio",
+    name:"Ethik, Datenschutz & Compliance",
+    analyseeinheit:"Governance, Regulierung & Vertrauen",
+    desc:"Governance von KI hinsichtlich Datenschutz, Ethik und Regulierung. Bewertet werden: sicherer und rechtskonformer Umgang mit Lern- und Nutzungsdaten, Maßnahmen zur Erkennung und Reduktion von Bias, Einhaltung regulatorischer Anforderungen (z. B. EU AI Act) sowie Transparenz und Nachvollziehbarkeit von KI-Systemen.",
+    indikatoren:[
+      "Datenschutz-Folgenabschätzung für KI-Systeme ist durchgeführt",
+      "Bias-Tests werden vor KI-Deployments durchgeführt",
+      "EU AI Act Risikoklassifizierung ist für alle KI-Systeme dokumentiert"
+    ],
+    kpis:["Anteil KI-Systeme mit abgeschlossener Datenschutz-Folgenabschätzung (%)","Anzahl Compliance-Verstöße KI-bezogen pro Jahr (Ziel: 0)"],
+    question:"Wie systematisch und proaktiv stellt Ihre Organisation sicher, dass KI-Systeme datenschutzkonform, ethisch verantwortungsvoll und regulatorisch compliant eingesetzt werden?",
+    options:[
+      "Datenschutzfragen sind ungeklärt. Bias-Governance existiert nicht. Regulatorische Anforderungen (z. B. DSGVO, EU AI Act) werden nicht berücksichtigt.",
+      "Datenschutz und sichere Datenverarbeitung werden reaktiv umgesetzt. Mechanismen zur Erkennung und Reduktion von Bias sind vereinzelt vorhanden. Rechtliche Anforderungen werden punktuell und anlassbezogen beachtet.",
+      "Datenschutz für personenbezogene und lernbezogene Daten ist standardisiert geregelt und dokumentiert. Bias-Mechanismen sind beschrieben und regelmäßig überprüft. Rechtliche Anforderungen sind dokumentiert und werden systematisch überwacht.",
+      "Datenschutz wird proaktiv überwacht und kontinuierlich verbessert. Bias-Erkennung und -Reduktion sind in laufende Prozesse integriert. Rechtliche Anforderungen werden organisationsweit gesteuert und sind auditierbar.",
+      "Ethik, Compliance und Governance sind vollständig in KI-Systeme integriert und werden kontinuierlich automatisiert überwacht. Bias, Datenschutz und regulatorische Anforderungen werden vorausschauend erkannt und optimiert. Vertrauenswürdige KI ist organisationskulturell verankert."
+    ]
+  },
+  {
+    level:"Sozio-organisatorische Ebene", levelTag:"sozio",
+    name:"Governance & Operating Model",
+    analyseeinheit:"Rollen, Entscheidungen & Steuerung",
+    desc:"Organisatorische Steuerung von KI-Initiativen. Bewertet werden: Klarheit von Rollen und Verantwortlichkeiten, Qualität datenbasierter Entscheidungsprozesse sowie die strukturierte Priorisierung, Koordination und Skalierung von KI-Vorhaben in der gesamten Organisation.",
+    indikatoren:[
+      "KI-Verantwortliche (AI Owner, AI Lead) sind namentlich definiert",
+      "KI-Entscheidungen sind nachvollziehbar dokumentiert",
+      "KI-Initiativen werden in einem Portfolio gesteuert"
+    ],
+    kpis:["Anteil KI-Initiativen mit definierten Rollen und Verantwortlichen (%)","Anteil datenbasierter L&D-Entscheidungen an Gesamtentscheidungen (%)"],
+    question:"Wie klar sind Rollen, Verantwortlichkeiten und Steuerungsprozesse für KI-Initiativen in Ihrer Organisation definiert und gelebt?",
+    options:[
+      "Rollen und Verantwortlichkeiten für KI sind ungeklärt. Entscheidungen werden intuitiv und erfahrungsbasiert getroffen. KI-Initiativen werden unkoordiniert und fragmentiert umgesetzt.",
+      "Einzelne KI-Rollen sind punktuell definiert. Entscheidungen werden vereinzelt durch Daten unterstützt. KI-Initiativen werden lokal und projektbezogen organisiert ohne übergreifende Koordination.",
+      "KI-Rollen und Verantwortlichkeiten sind formalisiert. Entscheidungen werden regelmäßig daten- und analysebasiert vorbereitet. KI-Initiativen sind bereichsübergreifend koordiniert.",
+      "KI-Rollen sind organisationsweit etabliert und klar besetzt. Entscheidungen werden systematisch durch KI-Modelle unterstützt und nachvollziehbar dokumentiert. KI-Initiativen sind strategisch portfolioorientiert und organisationsweit integriert.",
+      "Governance-Strukturen sind adaptiv, datengetrieben und KI-gestützt orchestriert. Entscheidungen erfolgen transparent und nahezu in Echtzeit. KI-Initiativen werden automatisiert priorisiert und strategisch optimiert."
+    ]
+  },
+  {
+    level:"Sozio-organisatorische Ebene", levelTag:"sozio",
+    name:"Ressourcen",
+    analyseeinheit:"Investitionen, Personal & Innovationskapazität",
+    desc:"Ausmaß, in dem finanzielle, personelle, technologische und organisatorische Ressourcen für die Entwicklung, Nutzung und Skalierung KI-gestützter Lern- und Transformationsinitiativen bereitgestellt werden — einschließlich langfristiger Investitionsplanung und Strukturen zur Förderung von Innovation.",
+    indikatoren:[
+      "KI-Lernbudget ist im Jahresbudget explizit ausgewiesen",
+      "Dedizierte Personalressourcen für KI-Lernen sind vorhanden",
+      "Innovationszeit für KI-Experimente ist strukturell reserviert"
+    ],
+    kpis:["KI-Lernbudget als Anteil am Gesamt-L&D-Budget (%)","Anzahl dedizierter FTEs für KI-Lernen"],
+    question:"In welchem Umfang stellt Ihre Organisation gezielt finanzielle, personelle und organisatorische Ressourcen für KI-gestütztes Lernen und Innovation bereit?",
+    options:[
+      "Finanzielle, personelle und technologische Ressourcen für KI-Initiativen sind kaum vorhanden. Investitionen erfolgen ad hoc und ohne Planung.",
+      "Investitionen in KI-Lerninitiativen sind vereinzelt und projektbezogen. Ressourcen sind begrenzt verfügbar. Innovation und Weiterentwicklung werden pilotgetrieben betrieben.",
+      "Investitionen in KI-Lernen sind strukturiert geplant und wiederkehrend budgetiert. Ressourcen sind teilweise organisationsweit zugänglich. Innovationen zur Erprobung neuer KI-Lernformate sind teilweise priorisiert.",
+      "Investitionen sind strategisch priorisiert und langfristig geplant. Ressourcen sind systematisch bereitgestellt. Innovationskapazitäten für KI-Lernformate sind strategisch skaliert.",
+      "Ressourcenallokation erfolgt dynamisch, datenbasiert und vorausschauend. Investitionen, Kompetenzen und Innovationskapazitäten werden KI-gestützt optimiert und flexibel bereitgestellt."
+    ]
+  },
+  {
+    level:"Sozio-organisatorische Ebene", levelTag:"sozio",
+    name:"Führung",
+    analyseeinheit:"Verhalten und Kompetenz der Führungskräfte",
+    desc:"Individuelle Führungskompetenzen und -handlungen im Umgang mit KI-Transformation. Bewertet werden: ob Führungskräfte konkret Orientierung geben, Mitarbeitende aktiv befähigen, Ressourcen für KI-Lernen bereitstellen und als Vorbilder im verantwortungsvollen KI-Einsatz agieren.",
+    indikatoren:[
+      "Führungskräfte stellen aktiv Lernzeit für KI-Themen bereit",
+      "Führungskräfte nutzen mind. ein KI-Tool regelmäßig selbst",
+      "KI-Kompetenzentwicklung ist Bestandteil von Führungsentwicklungsprogrammen"
+    ],
+    kpis:["Anteil Führungskräfte mit abgeschlossener KI-Grundlagenqualifikation (%)","Ø Anzahl KI-bezogener Lernempfehlungen durch Führungskräfte pro Quartal"],
+    question:"Wie aktiv gestalten Führungskräfte in Ihrer Organisation den KI-Wandel — durch Orientierung, Vorbildfunktion, Befähigung der Mitarbeitenden und Ressourcenbereitstellung?",
+    options:[
+      "Führungskräfte geben keine Orientierung zum KI-Einsatz. Befähigung der Mitarbeitenden findet nicht statt. KI-Transformation wird von der Führung weder initiiert noch unterstützt.",
+      "Einzelne Führungskräfte zeigen erste Initiative und erproben KI-Tools selbst. Befähigung von Mitarbeitenden erfolgt vereinzelt und informell. Ein gemeinsames Führungsverständnis zum KI-Einsatz fehlt.",
+      "Führungskräfte kommunizieren klare Erwartungen zum KI-Einsatz und stellen aktiv Ressourcen und Lernzeit bereit. Befähigung der Mitarbeitenden ist strukturiert organisiert. Führungskräfte agieren als sichtbare Vorbilder.",
+      "Führungskräfte gestalten den KI-Wandel proaktiv: Sie coachen Mitarbeitende, geben kontinuierlich Feedback und passen ihren Führungsstil an KI-veränderte Arbeitsweisen an. Führungskompetenz im KI-Kontext wird systematisch entwickelt.",
+      "Führungskräfte agieren als KI-affine Transformationsgestalter. Sie nutzen KI-gestützte Entscheidungsunterstützung, fördern kontinuierlich Innovation und übernehmen Verantwortung für eine ethisch fundierte KI-Nutzung im Team."
+    ]
+  },
+  {
+    level:"Sozio-organisatorische Ebene", levelTag:"sozio",
+    name:"Unternehmens- & Lernkultur",
+    analyseeinheit:"kollektive Haltung & organisationale Praxis",
+    desc:"Kollektive Werte, Normen und gelebte organisationale Praxis im Umgang mit KI — unabhängig davon, wer sie initiiert hat. Bewertet werden: wie tief KI in Arbeitsalltag, Routinen und Zielsystemen verankert ist, wie offen die Organisation kollektiv mit Experimenten und Fehlern umgeht, und ob KI-Nutzung als selbstverständliche Praxis gelebt wird.",
+    indikatoren:[
+      "KI-Themen werden in Teambesprechungen aktiv diskutiert",
+      "Gescheiterte KI-Experimente werden offen geteilt und als Lernerfahrung behandelt",
+      "KI-Nutzung ist in Zielvereinbarungen oder OKRs verankert"
+    ],
+    kpis:["Kulturindex KI-Offenheit (Ø Score Mitarbeiterbefragung, Skala 1–5)","Anteil Teams mit regelmäßigen KI-bezogenen Retrospektiven (%)"],
+    question:"Wie tief ist eine offene, experimentierfreudige KI-Kultur in Ihrer Organisation kollektiv verankert — in Werten, Alltagsroutinen und dem Umgang mit Fehlern?",
+    options:[
+      "Die Organisation steht KI kollektiv ablehnend oder gleichgültig gegenüber. KI ist in keinen Routinen, Prozessen oder Zielsystemen sichtbar. Experimente werden nicht unterstützt; Fehlerkultur ist nicht vorhanden.",
+      "Die kollektive Haltung gegenüber KI ist vorsichtig-beobachtend. KI ist in einzelnen Projekten sichtbar, aber nicht in den Arbeitsalltag integriert. Experimentierwille ist vereinzelt vorhanden, aber nicht organisational verankert.",
+      "Ein gemeinsames Verständnis zur KI-Nutzung entwickelt sich. KI ist in Teilen der Organisation in Routinen und Arbeitsweisen integriert. Experimente werden akzeptiert; eine konstruktive Fehlerkultur entsteht.",
+      "Gemeinsame Werte zur KI-Nutzung sind organisationsweit verankert und aktiv gelebt. KI ist fester Bestandteil von Routinen, Zielsystemen und Entscheidungsprozessen. Die Organisation experimentiert systematisch und lernt kollektiv aus Erfahrungen.",
+      "KI ist Teil der organisationalen Identität. Kontinuierliches Experimentieren, gemeinsames Gestalten und kollektive Weiterentwicklung sind selbstverständliche Praxis. Die Organisation entwickelt sich gemeinsam mit KI weiter — offen, reflektiert und innovationsorientiert."
+    ]
+  },
+  {
+    level:"Sozio-organisatorische Ebene", levelTag:"sozio",
+    name:"Stakeholder & Wirkungsmessung",
+    analyseeinheit:"Einbindung, Kommunikation & ROI",
+    desc:"Einbindung relevanter Stakeholder sowie systematische Messung der Wirksamkeit KI-gestützter Lernmaßnahmen. Bewertet werden: transparente Kommunikation, aktive Partizipation interner und externer Anspruchsgruppen, Messung von Lerntransfer und ROI sowie die Nutzung von Wirkungsdaten zur kontinuierlichen Verbesserung.",
+    indikatoren:[
+      "Lerntransfer wird nach Abschluss von KI-Lernmaßnahmen gemessen",
+      "Stakeholder-Feedback wird strukturiert erhoben und ausgewertet",
+      "ROI von KI-Lerninitiativen wird mindestens jährlich berechnet"
+    ],
+    kpis:["Lerntransferrate KI-Lernmaßnahmen (%, Messung 4–8 Wochen nach Abschluss)","ROI KI-Lerninvestitionen (%)"],
+    question:"Wie systematisch bindet Ihre Organisation Stakeholder ein und misst die Wirksamkeit (Lerntransfer, ROI) ihrer KI-Lernmaßnahmen?",
+    options:[
+      "Relevante Stakeholder sind nicht identifiziert oder eingebunden. Kommunikation zu KI-Lernen erfolgt nicht. Wirkung von KI-Lernmaßnahmen wird nicht gemessen.",
+      "Einzelne interne Stakeholder sind identifiziert und vereinzelt eingebunden. Kommunikation ist reaktiv und anlassbezogen. Erste Versuche zur Wirkungsmessung finden vereinzelt statt.",
+      "Interne und externe Stakeholder sind teilweise eingebunden. Kommunikation zu KI-Lernen findet regelmäßig und strukturiert statt. Wirkungsmessung (z. B. Lerntransfer, Nutzerakzeptanz) erfolgt systematisch in ausgewählten Bereichen.",
+      "Stakeholder sind organisationsweit systematisch vernetzt und aktiv in Entscheidungsprozesse eingebunden. Kommunikation ist transparent, zielgruppengerecht und integriert. Wirkungsmessung (Lerntransfer, ROI, Kompetenzentwicklung) ist organisationsweit etabliert.",
+      "Interne und externe Stakeholder sind in ein intelligentes, KI-vernetztes Lernökosystem integriert. Kommunikation und Zusammenarbeit erfolgen adaptiv und in Echtzeit. Wirkungsdaten werden KI-gestützt analysiert und fließen kontinuierlich in die Weiterentwicklung ein."
+    ]
+  },
+
+  // ── TECHNOLOGISCHE EBENE (3 Dimensionen) ───────────────────────────────────
+  {
+    level:"Technologische Ebene", levelTag:"tech",
+    name:"Technologie, Tools & Infrastruktur",
+    analyseeinheit:"Tools, Plattformen & Systemarchitektur",
+    desc:"Verfügbarkeit, Qualität und Betriebsfähigkeit der gesamten technologischen Grundlage des KI-Lernökosystems. Bewertet werden sowohl konkrete KI-Werkzeuge (Auswahl, Einführung, Nutzung, Evaluation) als auch die zugrundeliegende Plattformarchitektur, Interoperabilität, Skalierbarkeit und Betriebsstabilität.",
+    indikatoren:[
+      "Mitarbeitende haben strukturierten Zugang zu mind. einem KI-Lern-Tool",
+      "Neue Tools werden nach definiertem Evaluationsprozess eingeführt",
+      "Systemverfügbarkeit und Skalierbarkeit der Plattform sind dokumentiert und überwacht"
+    ],
+    kpis:["Anteil Mitarbeitender mit aktivem Zugang zu KI-Lerntools (%)","Systemverfügbarkeit KI-Lernplattform (%, Ziel: >99,5 %)"],
+    question:"Wie leistungsfähig, skalierbar und gut eingeführt sind KI-Tools und die technologische Infrastruktur Ihres Lernökosystems — von der Einzellösung bis zur Systemarchitektur?",
+    options:[
+      "Keine KI-Tools vorhanden. Technologische Grundlage ist fragmentiert und nicht KI-fähig. Systeme sind isoliert, nicht interoperabel. Einführung neuer Technologien erfolgt reaktiv und ungeplant.",
+      "Einzelne KI-Tools werden pilotiert. Erste Plattformkomponenten sind punktuell vorhanden. Systeme sind begrenzt verbunden. Einführungsprozesse und Skalierbarkeit sind eingeschränkt.",
+      "KI-Tools sind für ausgewählte Formate verfügbar und strukturiert eingeführt. Standardisierte Plattformarchitektur ist etabliert. Neue KI-Technologien werden nach definiertem Prozess evaluiert und bereichsweise integriert.",
+      "KI-Tools sind organisationsweit verfügbar und aktiv genutzt. Infrastruktur ist modular, vernetzt und flexibel skalierbar. Neue Technologien werden systematisch identifiziert, getestet und integriert. Nutzerfeedback fließt strukturiert ein.",
+      "KI-Tools und Infrastruktur bilden ein vollständig vernetztes, autonom skalierbares und selbstoptimierendes Ökosystem. Neue Technologien werden KI-gestützt identifiziert und integriert. Plattformen ermöglichen adaptive Lern- und Arbeitsumgebungen in Echtzeit."
+    ]
+  },
+  {
+    level:"Technologische Ebene", levelTag:"tech",
+    name:"Daten",
+    analyseeinheit:"Datenqualität, -verfügbarkeit & -governance",
+    desc:"Fähigkeit der Organisation, Datenquellen, Datenmodelle und Datenflüsse systematisch zu organisieren, zu integrieren und zu steuern. Bewertet werden: Datenqualität (Konsistenz, Aktualität, Nachvollziehbarkeit), rollenbasierte Datenverfügbarkeit sowie die Nutzbarkeit von Daten für Lern-, Analyse- und Entscheidungsprozesse.",
+    indikatoren:[
+      "Datenkatalog für Lern- und HR-Daten ist vorhanden und gepflegt",
+      "Datenqualität wird regelmäßig automatisiert geprüft",
+      "Rollenbasierte Datenzugriffsrechte sind definiert und dokumentiert"
+    ],
+    kpis:["Datenqualitätsindex Lerndaten (Ø Score, Skala 0–100)","Anteil Lern- und HR-Datensätze mit vollständiger Dokumentation (%)"],
+    question:"Wie gut sind Lern-, HR- und Arbeitsdaten in Ihrer Organisation qualitativ hochwertig, strukturiert, zugänglich und für KI-gestützte Prozesse nutzbar?",
+    options:[
+      "Daten sind isoliert, unstrukturiert, inkonsistent oder schwer zugänglich. Eine systematische Datenbasis für KI-gestützte Prozesse fehlt vollständig.",
+      "Daten für KI-gestützte Lern- und Arbeitsprozesse sind teilweise standardisiert. Datenqualität ist begrenzt; Verfügbarkeit und Zugänglichkeit sind eingeschränkt.",
+      "Daten sind organisationsweit integriert, standardisiert und überwiegend verfügbar. Datenqualität wird regelmäßig geprüft. Zugang zu Daten ist für relevante Rollen strukturiert geregelt.",
+      "Daten sind modular, plattformbasiert und qualitativ hochwertig verfügbar. Datenherkunft und -qualität sind nachvollziehbar dokumentiert. Daten sind organisationsweit rollenbasiert nutzbar.",
+      "Datenökosysteme sind vollständig integriert, semantisch vernetzt und KI-optimiert. Datenqualität, Verfügbarkeit und Governance werden autonom sichergestellt. Daten ermöglichen prädiktive und generative Prozesse in Echtzeit."
+    ]
+  },
+  {
+    level:"Technologische Ebene", levelTag:"tech",
+    name:"Analytics",
+    analyseeinheit:"Datenanalyse, Prognose & Entscheidungsunterstützung",
+    desc:"Ausmaß, in dem Datenanalysen und KI-Verfahren zur Unterstützung von Lern-, Kompetenzentwicklungs- und Entscheidungsprozessen eingesetzt werden. Bewertet werden: Analyse vergangener Lernaktivitäten, prädiktive Modelle zur Prognose von Kompetenzbedarfen sowie KI-gestützte Handlungsempfehlungen.",
+    indikatoren:[
+      "L&D-Dashboards sind für Entscheidungsträger zugänglich und aktuell",
+      "Prädiktive Modelle für Kompetenzbedarfe sind im Einsatz",
+      "Handlungsempfehlungen aus Analytics werden dokumentiert und nachverfolgt"
+    ],
+    kpis:["Anteil L&D-Entscheidungen auf Basis von Analytics-Daten (%)","Prognosegenauigkeit Kompetenzbedarfsmodell (% Abweichung Ist vs. Prognose)"],
+    question:"In welchem Ausmaß nutzt Ihre Organisation Datenanalysen und KI-Modelle, um Lernentscheidungen zu treffen, Kompetenzbedarfe vorherzusagen und Entwicklungsmaßnahmen zu optimieren?",
+    options:[
+      "Vergangenheitsbezogene Analysen von Lernaktivitäten werden nicht genutzt. Prädiktive Modelle zur Prognose von Kompetenzbedarfen sind nicht vorhanden. KI-gestützte Handlungsempfehlungen fehlen vollständig.",
+      "Lernaktivitäten werden vereinzelt manuell ausgewertet. Prädiktive Modelle werden experimentell erprobt. KI-gestützte Handlungsempfehlungen werden punktuell eingesetzt.",
+      "Lernaktivitäten werden systematisch berichtet und ausgewertet. Prädiktive Modelle werden in einzelnen Bereichen genutzt. KI-gestützte Handlungsempfehlungen unterstützen Lernpfade und Maßnahmen regelmäßig.",
+      "Lernaktivitäten werden automatisch visualisiert und analysiert. Prädiktive Modelle sind systematisch in Lernprozesse integriert. KI-personalisierte Handlungsempfehlungen werden organisationsweit angewendet.",
+      "KI-basierte Analytics-Systeme arbeiten prädiktiv, präskriptiv (vorausschauend-steuernd) und autonom. Lern-, Kompetenz- und Organisationsentwicklung werden in Echtzeit analysiert, simuliert und optimiert. Handlungsempfehlungen werden kontinuierlich personalisiert und adaptiv umgesetzt."
+    ]
+  }
+];
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ══════════════════════════════════════════════════════════════════════════════
+const LEVEL_ORDER = ["Meso-Ebene","Sozio-organisatorische Ebene","Technologische Ebene"];
+const LEVEL_COLORS = {
+  "Meso-Ebene":                   {tag:"meso",  bar:"rgba(6,182,212,.7)",   bg:"rgba(6,182,212,.12)",   text:"#22d3ee"},
+  "Sozio-organisatorische Ebene": {tag:"sozio", bar:"rgba(139,92,246,.7)",  bg:"rgba(139,92,246,.12)",  text:"#a78bfa"},
+  "Technologische Ebene":         {tag:"tech",  bar:"rgba(16,185,129,.7)",  bg:"rgba(16,185,129,.12)",  text:"#34d399"},
+};
+const GRADES = [
+  {min:0,  max:30, label:"Initiierend",     desc:"KI im Lernökosystem steht noch ganz am Anfang. Eine systematische Strategie, Infrastruktur und Kultur fehlen weitgehend. Starten Sie mit Datenschutz, Infrastruktur und einer klaren Strategie."},
+  {min:31, max:45, label:"Entwickelnd",     desc:"Erste Initiativen sind erkennbar, aber KI-gestütztes Lernen ist noch fragmentiert. Klarere Strategie und stärkere organisationale Verankerung sind der nächste Schritt."},
+  {min:46, max:60, label:"Etablierend",     desc:"KI-Anwendungen sind in wesentlichen Bereichen sichtbar. Die Organisation ist auf gutem Weg — jetzt braucht es mehr Konsistenz, Skalierung und Wirkungsmessung."},
+  {min:61, max:68, label:"Optimierend",     desc:"KI ist weitgehend in das Lernökosystem integriert. Prozesse, Kultur und Technologie greifen gut ineinander — jetzt geht es um Feinschliff und kontinuierliche Optimierung."},
+  {min:69, max:75, label:"Transformierend", desc:"KI ist selbstverständlicher Bestandteil des gesamten Lernökosystems. Ihre Organisation gilt als Vorreiter in der KI-gestützten Kompetenzentwicklung."},
+];
+
+let answers = new Array(dimensions.length).fill(null);
+let openPanels = {};
+let radarInst = null, barInst = null;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// BUILD FORM
+// ══════════════════════════════════════════════════════════════════════════════
+function toggleInfo(idx) {
+  openPanels[idx] = !openPanels[idx];
+  document.getElementById(`info_${idx}`).classList.toggle('open', openPanels[idx]);
+  document.getElementById(`infobtn_${idx}`).classList.toggle('open', openPanels[idx]);
+}
+
+function buildForm() {
+  const container = document.getElementById('checkForm');
+  let html = ''; let currentLevel = null;
+  dimensions.forEach((d, i) => {
+    if (d.level !== currentLevel) {
+      currentLevel = d.level;
+      const lc = LEVEL_COLORS[d.level];
+      const count = dimensions.filter(x => x.level === d.level).length;
+      html += `<div class="section-header">
+        <span class="section-tag tag-${lc.tag}">${d.level}</span>
+        <span style="font-size:12px;color:var(--muted)">${count} Dimension${count>1?'en':''}</span>
+      </div>`;
+    }
+    const indHtml = d.indikatoren.map(ind=>`<li>${ind}</li>`).join('');
+    const kpiHtml = d.kpis.map(k=>`<div class="kpi-chip">${k}</div>`).join('');
+    const optsHtml = d.options.map((opt,oi)=>`
+      <label class="option" id="opt_${i}_${oi}" onclick="selectOption(${i},${oi})">
+        <input type="radio" name="q${i}" value="${oi+1}">
+        <div class="option-dot"></div>
+        <span class="option-level">S${oi+1}</span>
+        <span class="option-text">${opt}</span>
+      </label>`).join('');
+    html += `
+      <div class="dimension">
+        <div class="dim-header">
+          <div class="dim-label">Analyseeinheit: ${d.analyseeinheit}</div>
+          <div class="dim-title">${d.name}</div>
+          <button class="dim-info-toggle" id="infobtn_${i}" onclick="toggleInfo(${i})">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Details, Indikatoren & KPIs
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="dim-info-panel" id="info_${i}">
+            <div class="dim-info-section">
+              <div class="dim-info-label">Beschreibung</div>
+              <div class="dim-info-text">${d.desc}</div>
+            </div>
+            <div class="dim-info-section">
+              <div class="dim-info-label">Beobachtungsindikatoren</div>
+              <ul class="dim-info-list">${indHtml}</ul>
+            </div>
+            <div class="dim-info-section">
+              <div class="dim-info-label">Leit-KPIs</div>
+              <div class="kpi-chips">${kpiHtml}</div>
+            </div>
+          </div>
+        </div>
+        <div class="question-card" id="qcard_${i}">
+          <div class="question-text">${i+1}. ${d.question}</div>
+          <div class="options">${optsHtml}</div>
+        </div>
+      </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function selectOption(qi, oi) {
+  for (let j=0;j<5;j++) document.getElementById(`opt_${qi}_${j}`)?.classList.remove('selected');
+  document.getElementById(`opt_${qi}_${oi}`).classList.add('selected');
+  answers[qi] = oi+1;
+  document.getElementById(`qcard_${qi}`).classList.add('answered');
+  updateProgress();
+}
+
+function updateProgress() {
+  const answered = answers.filter(a=>a!==null).length;
+  document.getElementById('progressFill').style.width = (answered/dimensions.length*100)+'%';
+  document.getElementById('progressLabel').textContent = `${answered} / ${dimensions.length} beantwortet`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SUBMIT & RESULTS
+// ══════════════════════════════════════════════════════════════════════════════
+function submitCheck() {
+  const unanswered = answers.filter(a=>a===null).length;
+  if (unanswered > 0) {
+    const note = document.getElementById('unansweredNote');
+    note.textContent = `Bitte beantworten Sie noch ${unanswered} Frage${unanswered>1?'n':''}.`;
+    note.style.display = 'block';
+    document.getElementById(`qcard_${answers.indexOf(null)}`).scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+  document.getElementById('unansweredNote').style.display='none';
+  renderResults();
+  document.getElementById('results').scrollIntoView({behavior:'smooth'});
+}
+
+function renderResults() {
+  const total = answers.reduce((s,a)=>s+a,0);
+  const grade = GRADES.find(g=>total>=g.min&&total<=g.max)||GRADES[GRADES.length-1];
+  const lvl = GRADES.indexOf(grade)+1;
+
+  document.getElementById('rScore').textContent = total;
+  document.getElementById('rGrade').textContent = `Reifegrad: ${grade.label}`;
+  document.getElementById('rDesc').textContent = grade.desc;
+
+  const matBar = document.getElementById('matBar');
+  matBar.innerHTML='';
+  for(let i=1;i<=5;i++){
+    const seg=document.createElement('div');
+    seg.className='maturity-seg'+(i<=lvl?' active':'');
+    matBar.appendChild(seg);
+  }
+
+  // Level averages
+  const levelScores={}, levelCounts={};
+  dimensions.forEach((d,i)=>{ levelScores[d.level]=(levelScores[d.level]||0)+answers[i]; levelCounts[d.level]=(levelCounts[d.level]||0)+1; });
+  const levelAvgs = LEVEL_ORDER.map(l=>levelCounts[l]?+(levelScores[l]/levelCounts[l]).toFixed(2):0);
+  const levelColors = LEVEL_ORDER.map(l=>LEVEL_COLORS[l].bar);
+
+  if(radarInst){radarInst.destroy();radarInst=null;}
+  if(barInst){barInst.destroy();barInst=null;}
+
+  // Radar
+  radarInst = new Chart(document.getElementById('radarChart').getContext('2d'),{
+    type:'radar',
+    data:{
+      labels: dimensions.map(d=>d.name),
+      datasets:[{
+        label:'Ihr Reifegrad', data:answers,
+        backgroundColor:'rgba(59,130,246,.15)', borderColor:'#3b82f6',
+        pointBackgroundColor:'#3b82f6', pointBorderColor:'#fff', borderWidth:2, pointRadius:4
+      }]
+    },
+    options:{
+      responsive:true,
+      scales:{r:{min:0,max:5,ticks:{stepSize:1,color:'#64748b',font:{size:10},backdropColor:'transparent'},grid:{color:'#1e2d47'},angleLines:{color:'#1e2d47'},pointLabels:{color:'#94a3b8',font:{size:10,family:"'DM Sans'"}}}},
+      plugins:{legend:{display:false}}
+    }
+  });
+
+  // Bar
+  barInst = new Chart(document.getElementById('barChart').getContext('2d'),{
+    type:'bar',
+    data:{
+      labels: LEVEL_ORDER,
+      datasets:[{label:'Ø Reifegrad', data:levelAvgs, backgroundColor:levelColors, borderRadius:6}]
+    },
+    options:{
+      responsive:true,
+      scales:{
+        y:{min:0,max:5,ticks:{color:'#64748b'},grid:{color:'#1e2d47'}},
+        x:{ticks:{color:'#94a3b8',font:{size:11}},grid:{display:false}}
+      },
+      plugins:{legend:{display:false}}
+    }
+  });
+
+  // Breakdown by Ebene
+  let breakHtml='<div class="breakdown-title">Detailauswertung nach Dimensionen</div>';
+  LEVEL_ORDER.forEach(ebene=>{
+    const lc=LEVEL_COLORS[ebene];
+    breakHtml+=`<div class="breakdown-ebene" style="background:${lc.bg};color:${lc.text}">${ebene}</div>`;
+    dimensions.forEach((d,i)=>{
+      if(d.level!==ebene) return;
+      const pct=(answers[i]/5*100).toFixed(0);
+      breakHtml+=`
+        <div class="breakdown-row">
+          <div class="breakdown-name">${d.name}</div>
+          <div class="breakdown-track"><div class="breakdown-fill" style="width:${pct}%;background:${lc.bar}"></div></div>
+          <div class="breakdown-val">${answers[i]}.0</div>
+        </div>`;
+    });
+  });
+  document.getElementById('breakdown').innerHTML=breakHtml;
+
+  // Recommendations — top 3 lowest
+  const sorted=[...dimensions.map((d,i)=>({name:d.name,score:answers[i],kpis:d.kpis,level:d.level}))].sort((a,b)=>a.score-b.score);
+  const recColors=['var(--accent)','var(--accent2)','var(--accent3)'];
+  let recoHtml=`<div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--text);margin-bottom:16px;">Prioritäre Handlungsfelder</div>`;
+  sorted.slice(0,3).forEach((d,i)=>{
+    const lc=LEVEL_COLORS[d.level];
+    recoHtml+=`
+      <div class="reco-card" style="border-left-color:${recColors[i]}">
+        <div class="reco-priority" style="color:${recColors[i]}">Priorität ${i+1} · ${d.level}</div>
+        <div class="reco-title">${d.name}</div>
+        <div class="reco-text">Mit einem Wert von <strong>${d.score} / 5</strong> besteht hier der größte Entwicklungsbedarf. Gezielte Maßnahmen in dieser Dimension steigern Ihren Gesamtreifegrad nachhaltig.</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Relevante Leit-KPIs zur Erfolgsmessung</div>
+        <div class="reco-kpis">${d.kpis.map(k=>`<div class="reco-kpi">${k}</div>`).join('')}</div>
+      </div>`;
+  });
+  document.getElementById('recommendations').innerHTML=recoHtml;
+  document.getElementById('results').style.display='block';
+}
+
+function resetCheck() {
+  answers=new Array(dimensions.length).fill(null);
+  openPanels={};
+  if(radarInst){radarInst.destroy();radarInst=null;}
+  if(barInst){barInst.destroy();barInst=null;}
+  document.getElementById('results').style.display='none';
+  window.scrollTo({top:0,behavior:'smooth'});
+  buildForm(); updateProgress();
+}
+
+buildForm(); updateProgress();
+</script>
+</body>
+</html>
